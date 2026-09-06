@@ -1,0 +1,32 @@
+{
+  "allotment": {
+    "entries": 39,
+    "sha256": "1eea61579a34f125cc079f20c55398199ba407efcc3ee87023bee5e4a9ca2671",
+    "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst"
+  },
+  "catalogue": {
+    "bytes": 11506,
+    "private": 131,
+    "sha256": "80996bda5bb640c0810d0d089af12536dd9128d75fc2a990b22e7b14a3b62a6d",
+    "whitelist": 501
+  },
+  "harvested": "202609062137",
+  "homegrown": {
+    "entries": 0,
+    "path": "varieties/homegrown"
+  },
+  "orchard": {
+    "entries": 467,
+    "sha256": "c369ee5b0c1991eeac520135cbdeb8bb34655cc37f53bc1e6bc1d947da97b50b",
+    "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist"
+  },
+  "register": {
+    "bytes": 5404248,
+    "sections": {
+      "CATEGORY-GOV-RU": 142,
+      "RU-AVAILABLE-ONLY-INSIDE": 167
+    },
+    "sha256": "95f94a984229a368eac96ab5f412242cb77da2dfc998d282a2e8ea56bd359809",
+    "url": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/geosite-ru-only.dat"
+  }
+}

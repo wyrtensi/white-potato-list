@@ -1,0 +1,11 @@
+# Hand-tended rows.  One entry per line, "#" starts a comment.
+# Merged on top of every upstream register on the next harvest.
+#
+# Syntax matches the upstream registers:
+#   example.com          the name and everything under it
+#   full:example.com     that exact name only
+#   keyword:example      substring match
+#   regexp:^ex.*\.com$   regular expression
+#
+# Keep this short.  Anything here is something the upstreams do not know about
+# yet; once one of them catches up, delete the line.

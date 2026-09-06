@@ -1,0 +1,5 @@
+# The catalogue is binary; never let line-ending conversion near it.
+*.dat binary
+
+# The profile link is one long line that readers take verbatim.
+HARVEST.LINK -text

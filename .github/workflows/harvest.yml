@@ -1,0 +1,51 @@
+name: harvest
+
+on:
+  schedule:
+    # Four times a day, off the hour: the upstream registers move on their own
+    # schedule and there is nothing to gain from arriving with everyone else.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bring in the crop
+        id: crop
+        run: python3 harvest.py
+
+      - name: Record the season
+        if: steps.crop.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          stamp="$(python3 -c "import json;print(json.load(open('seed-sources.lock'))['harvested'])")"
+          count="$(python3 -c "import json;print(json.load(open('seed-sources.lock'))['catalogue']['whitelist'])")"
+          echo "stamp=$stamp" >> "$GITHUB_ENV"
+          echo "count=$count" >> "$GITHUB_ENV"
+          git config user.name wyrtensi
+          git config user.email wyrtensi@users.noreply.github.com
+          git add seed-catalog.dat HARVEST.LINK seed-sources.lock
+          git commit -m "harvest $stamp: $count varieties"
+          git tag "$stamp"
+          git push origin HEAD
+          git push origin "$stamp"
+
+      - name: Put it in the cellar
+        if: steps.crop.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "$stamp" seed-catalog.dat \
+            --title "$stamp" \
+            --notes "$count varieties."
