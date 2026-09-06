@@ -5,12 +5,20 @@
     "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst"
   },
   "catalogue": {
-    "bytes": 11506,
+    "bytes": 31697,
+    "category-ads": 2,
     "private": 131,
-    "sha256": "80996bda5bb640c0810d0d089af12536dd9128d75fc2a990b22e7b14a3b62a6d",
-    "whitelist": 501
+    "sha256": "8ae77a913959f8f278c14fe473a67d5e6d2f42672c06565231b6241e27261495",
+    "torrent": 418,
+    "whitelist": 501,
+    "win-spy": 323
   },
-  "harvested": "202609062137",
+  "category-ads": {
+    "entries": 2,
+    "sha256": "c071863c1332f4a8b6a3c39bb5b9e8344f12e47ddeb6bd4d660d61c5518f4dc9",
+    "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/category-ads"
+  },
+  "harvested": "202609062243",
   "homegrown": {
     "entries": 0,
     "path": "varieties/homegrown"
@@ -28,5 +36,15 @@
     },
     "sha256": "95f94a984229a368eac96ab5f412242cb77da2dfc998d282a2e8ea56bd359809",
     "url": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/geosite-ru-only.dat"
+  },
+  "torrent": {
+    "entries": 434,
+    "sha256": "c180313389e1101615ca6081740d303f81000cfcf79c44d63ebfa165134f77c9",
+    "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/torrent"
+  },
+  "win-spy": {
+    "entries": 376,
+    "sha256": "2d1782b3a1a86c92eb7fb74cf27e8763a4ecbbc4bf4a70c3c3c147aed9475adf",
+    "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/win-spy"
   }
 }

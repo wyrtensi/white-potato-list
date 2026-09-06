@@ -32,6 +32,15 @@ PLAIN_SOURCES = {
     "allotment": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst",
 }
 
+# The profile does not only route around things, it also drops some.  Those
+# sections have to exist in the catalogue too, or the core refuses to start
+# with "section ... is missing" and the client is dead on arrival.
+CULLED = {
+    "WIN-SPY": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/win-spy",
+    "TORRENT": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/torrent",
+    "CATEGORY-ADS": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/category-ads",
+}
+
 # The upstream profile we inherit the region register pin from.
 PROFILE_URL = (
     "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main"
@@ -261,6 +270,19 @@ def main():
     whitelist = prune(rows)
     private = prune([(k, v.lower().lstrip(".")) for k, v in cellar])
 
+    sections = {"WHITELIST": whitelist, "PRIVATE": private}
+    for name, url in CULLED.items():
+        blob = fetch(url, name.lower())
+        got = parse_lines(blob.decode("utf-8", "replace"))
+        if not got:
+            sys.exit("harvest aborted: %s parsed to nothing" % name)
+        provenance[name.lower()] = {
+            "url": url,
+            "entries": len(got),
+            "sha256": hashlib.sha256(blob).hexdigest(),
+        }
+        sections[name] = prune(got)
+
     before, before_sha = last_season()
     if before and len(whitelist) < before * YIELD_FLOOR:
         sys.exit(
@@ -268,12 +290,22 @@ def main():
             % (len(whitelist), YIELD_FLOOR * 100, before)
         )
 
-    blob = write_catalogue({"WHITELIST": whitelist, "PRIVATE": private})
+    blob = write_catalogue(sections)
     # Round-trip what we just wrote; a catalogue that cannot be read back is
     # worse than no catalogue, because the field reader fails silently.
     back = read_catalogue(blob)
-    if len(back.get("WHITELIST", [])) != len(whitelist) or len(back.get("PRIVATE", [])) != len(private):
-        sys.exit("harvest aborted: catalogue failed its own round-trip check")
+    for name, entries in sections.items():
+        if len(back.get(name, [])) != len(entries):
+            sys.exit("harvest aborted: catalogue failed its own round-trip check")
+
+    # The profile names the sections it expects.  A catalogue missing even one
+    # of them does not degrade -- the core refuses to start at all -- so this
+    # is checked before anything is published, not after.
+    wanted = referenced_sections()
+    missing = sorted(w for w in wanted if w not in sections)
+    if missing:
+        sys.exit("harvest aborted: profile references section(s) the catalogue "
+                 "does not carry: %s" % ", ".join(missing))
 
     digest = hashlib.sha256(blob).hexdigest()
     if digest == before_sha:
@@ -287,22 +319,40 @@ def main():
     open(CATALOGUE, "wb").write(blob)
     link = build_link(stamp)
 
-    provenance["catalogue"] = {
-        "whitelist": len(whitelist),
-        "private": len(private),
-        "bytes": len(blob),
-        "sha256": digest,
-    }
+    provenance["catalogue"] = dict(
+        {name.lower(): len(entries) for name, entries in sections.items()},
+        bytes=len(blob), sha256=digest)
     provenance["harvested"] = stamp
     json.dump(provenance, open(LOCKFILE, "w"), indent=2, sort_keys=True)
     open(LOCKFILE, "a").write("\n")
 
-    print("whitelist %d, private %d, %d bytes" % (len(whitelist), len(private), len(blob)))
+    print("%s, %d bytes" % (", ".join("%s %d" % (n.lower(), len(v))
+                                      for n, v in sorted(sections.items())), len(blob)))
     if before:
         print("previous whitelist %d (%+d)" % (before, len(whitelist) - before))
     print("link %d bytes" % len(link))
     print("::notice::harvest %s -> %d varieties" % (stamp, len(whitelist)))
     announce(True)
+
+
+def load_profile():
+    """The upstream profile, decoded."""
+    raw = fetch(PROFILE_URL, "upstream profile").decode("utf-8", "replace").strip()
+    marker = "happ://routing/onadd/"
+    if not raw.startswith(marker):
+        sys.exit("harvest aborted: upstream profile is not in the expected form")
+    return json.loads(base64.b64decode(raw[len(marker):]))
+
+
+def referenced_sections():
+    """Every catalogue section the profile names, upper-cased."""
+    profile = load_profile()
+    wanted = set()
+    for key in ("DirectSites", "ProxySites", "BlockSites"):
+        for entry in profile.get(key) or []:
+            if isinstance(entry, str) and entry.startswith("geosite:"):
+                wanted.add(entry.split(":", 1)[1].upper())
+    return wanted
 
 
 def build_link(stamp):
@@ -311,11 +361,8 @@ def build_link(stamp):
     Only the variety-catalogue URL and the timestamp are ours; everything else
     is inherited, so upstream changes to the profile shape carry over.
     """
-    raw = fetch(PROFILE_URL, "upstream profile").decode("utf-8", "replace").strip()
     marker = "happ://routing/onadd/"
-    if not raw.startswith(marker):
-        sys.exit("harvest aborted: upstream profile is not in the expected form")
-    profile = json.loads(base64.b64decode(raw[len(marker):]))
+    profile = load_profile()
 
     repo = os.environ.get("GITHUB_REPOSITORY", "wyrtensi/white-potato-list")
     profile["Name"] = "White Potato"
