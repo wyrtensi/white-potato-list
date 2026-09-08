@@ -51,6 +51,11 @@ PROFILE_URL = (
 # plain registers: one entry per line, "#" starts a comment.
 HOMEGROWN = os.path.join("varieties", "homegrown")
 
+# Fields the harvest overwrites on the inherited profile.  They change on
+# every run by construction, so they are excluded when deciding whether
+# the upstream profile actually moved.
+OURS = ("Name", "Geositeurl", "LastUpdated")
+
 CATALOGUE = "seed-catalog.dat"
 LOCKFILE = "seed-sources.lock"
 LINKFILE = "HARVEST.LINK"
@@ -207,22 +212,43 @@ def prune(rows):
 
 
 def last_season():
-    """Yield and fingerprint of the previous harvest, or (0, None)."""
+    """Yield, catalogue and profile fingerprints, and the stamp published."""
+    blank = (0, None, None, None)
     if not os.path.exists(LOCKFILE):
-        return 0, None
+        return blank
     try:
-        prev = json.load(open(LOCKFILE))["catalogue"]
-        return int(prev["whitelist"]), prev.get("sha256")
+        prev = json.load(open(LOCKFILE))
+        cat = prev["catalogue"]
+        return (int(cat["whitelist"]), cat.get("sha256"),
+                (prev.get("profile") or {}).get("sha256"), prev.get("harvested"))
     except Exception:
-        return 0, None
+        return blank
 
 
-def announce(changed):
-    """Tell the workflow whether anything actually moved."""
+def profile_fingerprint(profile):
+    """Fingerprint the inherited half of the profile.
+
+    Upstream pins the region register by tag and re-cuts it most days, so
+    the profile moves even when no catalogue does.  Hashing everything
+    except the fields we write ourselves catches that, and catches the next
+    field they change without having to know its name in advance.
+    """
+    inherited = {k: v for k, v in profile.items() if k not in OURS}
+    return hashlib.sha256(json.dumps(
+        inherited, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def announce(grew, drifted):
+    """Tell the workflow what moved: the catalogue, the profile, or neither.
+
+    They are reported separately because only a new catalogue earns a tag
+    and a release; a profile-only change is a commit and nothing more.
+    """
     out = os.environ.get("GITHUB_OUTPUT")
     if out:
         with open(out, "a") as fh:
-            fh.write("changed=%s\n" % ("true" if changed else "false"))
+            fh.write("changed=%s\n" % ("true" if grew else "false"))
+            fh.write("relinked=%s\n" % ("true" if drifted else "false"))
 
 
 def main():
@@ -283,7 +309,7 @@ def main():
         }
         sections[name] = prune(got)
 
-    before, before_sha = last_season()
+    before, before_sha, before_profile, before_stamp = last_season()
     if before and len(whitelist) < before * YIELD_FLOOR:
         sys.exit(
             "harvest aborted: yield %d is below %.0f%% of last season's %d"
@@ -301,52 +327,83 @@ def main():
     # The profile names the sections it expects.  A catalogue missing even one
     # of them does not degrade -- the core refuses to start at all -- so this
     # is checked before anything is published, not after.
-    wanted = referenced_sections()
+    profile = load_profile()
+    wanted = referenced_sections(profile)
     missing = sorted(w for w in wanted if w not in sections)
     if missing:
         sys.exit("harvest aborted: profile references section(s) the catalogue "
                  "does not carry: %s" % ", ".join(missing))
 
     digest = hashlib.sha256(blob).hexdigest()
-    if digest == before_sha:
-        # Nothing grew.  Leave every file untouched -- including the profile,
-        # whose timestamp would otherwise churn on its own and make a dead
-        # harvest look like a live one.
+    fingerprint = profile_fingerprint(profile)
+
+    grew = digest != before_sha
+    # The profile is inherited whole from upstream, including its pin on the
+    # region register, which upstream re-cuts most days.  That pin reaches
+    # subscribers only through our link, so a profile that moved has to be
+    # rebuilt even on the many days when no catalogue does.
+    drifted = fingerprint != before_profile
+
+    if not grew and not drifted:
+        # Leave every file untouched -- the link carries a timestamp that
+        # would otherwise churn on its own and make a dead harvest look
+        # like a live one.
         print("whitelist %d, unchanged since %s" % (len(whitelist), before_sha[:12]))
-        announce(False)
+        announce(False, False)
         return
 
-    open(CATALOGUE, "wb").write(blob)
-    link = build_link(stamp)
+    if grew:
+        open(CATALOGUE, "wb").write(blob)
+        published = stamp
+    else:
+        # No new catalogue means no new release for the link to point at,
+        # so the pin stays on the one that is actually published.
+        published = before_stamp
+
+    link = build_link(published, profile)
 
     provenance["catalogue"] = dict(
         {name.lower(): len(entries) for name, entries in sections.items()},
         bytes=len(blob), sha256=digest)
-    provenance["harvested"] = stamp
+    provenance["profile"] = {"url": PROFILE_URL, "sha256": fingerprint,
+                             "region_register": profile.get("Geoipurl")}
+    provenance["harvested"] = published
+    provenance["relinked"] = stamp
     json.dump(provenance, open(LOCKFILE, "w"), indent=2, sort_keys=True)
     open(LOCKFILE, "a").write("\n")
 
-    print("%s, %d bytes" % (", ".join("%s %d" % (n.lower(), len(v))
-                                      for n, v in sorted(sections.items())), len(blob)))
-    if before:
-        print("previous whitelist %d (%+d)" % (before, len(whitelist) - before))
-    print("link %d bytes" % len(link))
-    print("::notice::harvest %s -> %d varieties" % (stamp, len(whitelist)))
-    announce(True)
+    if grew:
+        print("%s, %d bytes" % (", ".join("%s %d" % (n.lower(), len(v))
+                                          for n, v in sorted(sections.items())),
+                                len(blob)))
+        if before:
+            print("previous whitelist %d (%+d)" % (before, len(whitelist) - before))
+    else:
+        print("catalogue unchanged (%s), upstream profile moved" % digest[:12])
+        print("region register now %s" % provenance["profile"]["region_register"])
+    print("link %d bytes, pinned to %s" % (len(link), published))
+    print("::notice::%s %s -> %d varieties"
+          % ("harvest" if grew else "relink", published, len(whitelist)))
+    announce(grew, drifted)
+
+
+_PROFILE = []
 
 
 def load_profile():
-    """The upstream profile, decoded."""
-    raw = fetch(PROFILE_URL, "upstream profile").decode("utf-8", "replace").strip()
-    marker = "happ://routing/onadd/"
-    if not raw.startswith(marker):
-        sys.exit("harvest aborted: upstream profile is not in the expected form")
-    return json.loads(base64.b64decode(raw[len(marker):]))
+    """The upstream profile, decoded, fetched at most once per run."""
+    if not _PROFILE:
+        raw = fetch(PROFILE_URL, "upstream profile").decode("utf-8", "replace").strip()
+        marker = "happ://routing/onadd/"
+        if not raw.startswith(marker):
+            sys.exit("harvest aborted: upstream profile is not in the expected form")
+        _PROFILE.append(json.loads(base64.b64decode(raw[len(marker):])))
+    # A copy, so a caller that edits the profile cannot move the fingerprint.
+    return json.loads(json.dumps(_PROFILE[0]))
 
 
-def referenced_sections():
+def referenced_sections(profile):
     """Every catalogue section the profile names, upper-cased."""
-    profile = load_profile()
     wanted = set()
     for key in ("DirectSites", "ProxySites", "BlockSites"):
         for entry in profile.get(key) or []:
@@ -355,14 +412,13 @@ def referenced_sections():
     return wanted
 
 
-def build_link(stamp):
+def build_link(stamp, profile):
     """Rebuild the field profile, keeping the upstream's region register pin.
 
     Only the variety-catalogue URL and the timestamp are ours; everything else
     is inherited, so upstream changes to the profile shape carry over.
     """
     marker = "happ://routing/onadd/"
-    profile = load_profile()
 
     repo = os.environ.get("GITHUB_REPOSITORY", "wyrtensi/white-potato-list")
     profile["Name"] = "White Potato"
