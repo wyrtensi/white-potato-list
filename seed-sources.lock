@@ -5,12 +5,12 @@
     "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst"
   },
   "catalogue": {
-    "bytes": 31697,
+    "bytes": 59248,
     "category-ads": 2,
     "private": 131,
-    "sha256": "8ae77a913959f8f278c14fe473a67d5e6d2f42672c06565231b6241e27261495",
+    "sha256": "7df3b920a6767a13986a7c2989167c45c1649a1d2956353b62ca7355115a0d42",
     "torrent": 418,
-    "whitelist": 501,
+    "whitelist": 1925,
     "win-spy": 323
   },
   "category-ads": {
@@ -18,7 +18,12 @@
     "sha256": "c071863c1332f4a8b6a3c39bb5b9e8344f12e47ddeb6bd4d660d61c5518f4dc9",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/category-ads"
   },
-  "harvested": "202609062243",
+  "guards": {
+    "blocked_direct": 10,
+    "blocked_direct_new": [],
+    "coverage_lost": []
+  },
+  "harvested": "202609081426",
   "homegrown": {
     "entries": 0,
     "path": "varieties/homegrown"
@@ -33,16 +38,56 @@
     "sha256": "1eb019eab2ac443e02ffb03f890489fae7496ba4c06f60ba6ce065fcf30c9638",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main/HAPP/WHITELIST.DEEPLINK"
   },
-  "register": {
-    "bytes": 5404248,
-    "sections": {
-      "CATEGORY-GOV-RU": 142,
-      "RU-AVAILABLE-ONLY-INSIDE": 167
-    },
-    "sha256": "95f94a984229a368eac96ab5f412242cb77da2dfc998d282a2e8ea56bd359809",
-    "url": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/geosite-ru-only.dat"
+  "refused": {
+    "count": 18,
+    "worst": [
+      "ru (19463 blocked)",
+      "xn--p1ai (2081 blocked)",
+      "su (339 blocked)",
+      "moscow (34 blocked)",
+      "at.ua (22 blocked)",
+      "xn--p1acf (17 blocked)",
+      "xn--80adxhks (9 blocked)",
+      "ru.com (9 blocked)",
+      "xn--80asehdb (8 blocked)",
+      "xn--80aswg (7 blocked)"
+    ]
   },
-  "relinked": "202609081349",
+  "register": {
+    "bytes": 73703302,
+    "sections": {
+      "AUTORU": 5,
+      "CATEGORY-AI-RU": 12,
+      "CATEGORY-BANK-RU": 313,
+      "CATEGORY-BETTING-RU": 13,
+      "CATEGORY-ECOMMERCE-RU": 199,
+      "CATEGORY-EDUCATION-RU": 19,
+      "CATEGORY-ENTERTAINMENT-RU": 31,
+      "CATEGORY-FORUMS-RU": 10,
+      "CATEGORY-GOV-RU": 142,
+      "CATEGORY-MEDIA-RU": 141,
+      "CATEGORY-MEDICINE-RU": 34,
+      "CATEGORY-RETAIL-RU": 82,
+      "CATEGORY-RU": 1103,
+      "CATEGORY-TECH-MEDIA-RU": 34,
+      "CATEGORY-TRAVEL-RU": 25,
+      "MAILRU": 300,
+      "MTS-RU": 12,
+      "NIC-RU": 4,
+      "REGRU": 3,
+      "RU-AVAILABLE-ONLY-INSIDE": 167,
+      "SBER": 98,
+      "T2-RU": 3,
+      "TBANK-RU": 112,
+      "YANDEX": 131
+    },
+    "sha256": "76fdbe01687a6cc7683b50c38ceea84941458e8371d215918daf555665a537cd",
+    "url": "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
+  },
+  "relinked": "202609081426",
+  "sources": {
+    "sha256": "024987b1b5bc22d1b1b461fdd07262296d89ed0fe4c53bae9e72af9618d167c7"
+  },
   "torrent": {
     "entries": 434,
     "sha256": "c180313389e1101615ca6081740d303f81000cfcf79c44d63ebfa165134f77c9",
