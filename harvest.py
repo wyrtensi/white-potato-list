@@ -18,14 +18,32 @@ import urllib.request
 
 # --- Where the varieties come from -----------------------------------------
 
-# One 5 MB register carries three of the four inputs, so it is fetched once and
-# read three times rather than pulled per category.
+# The register: one 70 MB file carrying 1543 sections, of which we read about
+# thirty.  Its predecessor, russia-blocked-geosite, stopped publishing on
+# 2026-08-10; the sections we took from it were identical to these on the day
+# we moved, so the move is for breadth, not for freshness.
 REGISTER_URL = (
-    "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest"
-    "/download/geosite-ru-only.dat"
+    "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest"
+    "/download/geosite.dat"
 )
-REGISTER_SECTIONS = ("RU-AVAILABLE-ONLY-INSIDE", "CATEGORY-GOV-RU")
+
+# Russian services, by category.  Everything here is meant to reach the user
+# without going abroad first: banks refuse foreign addresses, delivery and
+# government sites geofence, and a foreign exit makes them slow or unusable.
+REGISTER_SECTIONS = (
+    "CATEGORY-RU", "CATEGORY-BANK-RU", "CATEGORY-ECOMMERCE-RU",
+    "CATEGORY-MEDIA-RU", "CATEGORY-RETAIL-RU", "CATEGORY-GOV-RU",
+    "CATEGORY-MEDICINE-RU", "CATEGORY-TRAVEL-RU", "CATEGORY-EDUCATION-RU",
+    "CATEGORY-ENTERTAINMENT-RU", "CATEGORY-TECH-MEDIA-RU",
+    "CATEGORY-FORUMS-RU", "CATEGORY-AI-RU", "CATEGORY-BETTING-RU",
+    "RU-AVAILABLE-ONLY-INSIDE", "SBER", "YANDEX", "MAILRU", "TBANK-RU",
+    "MTS-RU", "T2-RU", "AUTORU", "REGRU", "NIC-RU",
+)
 CELLAR_SECTION = "PRIVATE"
+
+# Read, never published: the list of what is blocked inside Russia, used only
+# to refuse entries that would route a blocked site around the tunnel.
+BLOCKED_SECTION = "RU-BLOCKED"
 
 PLAIN_SOURCES = {
     "orchard": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist",
@@ -63,6 +81,17 @@ LINKFILE = "HARVEST.LINK"
 # A harvest that loses more than a tenth of last season's yield is a failed
 # harvest, not a small one -- almost always an upstream serving an error page.
 YIELD_FLOOR = 0.90
+
+# And one that doubles is just as suspect: that is what it looks like when an
+# upstream tips a blocklist into a category by mistake.  The floor alone would
+# wave that through.
+YIELD_CEILING = 2.00
+
+# How much of the previous direct list may stop being covered before the run
+# is treated as a structural loss rather than upstream tidying.  Coverage is
+# not the same as the entry count: pruning removes entries without removing
+# what they matched, and a growing list can still cover less.
+COVERAGE_SLACK = 0.01
 
 # Entry kinds, in the order the binary format numbers them.
 PLAIN, REGEX, SUFFIX, EXACT = 0, 1, 2, 3
@@ -118,8 +147,16 @@ def _fields(buf, start, end):
             raise ValueError("unsupported wire type %d" % wire)
 
 
-def read_catalogue(blob):
-    """Return {SECTION: [(kind, value)]} from a catalogue blob."""
+def read_catalogue(blob, wanted=None):
+    """Return {SECTION: [(kind, value)]} from a catalogue blob.
+
+    `wanted` limits which sections are decoded.  The register carries 2.9
+    million entries across 1543 sections and this harvest reads thirty of
+    them; walking past the rest instead of building tuples for it turns a
+    24-second parse into a couple of seconds.  The name is the first field
+    of a section, so an unwanted one is abandoned before its entries are
+    touched.
+    """
     sections = {}
     for num, payload in _fields(blob, 0, len(blob)):
         if num != 1:
@@ -128,6 +165,8 @@ def read_catalogue(blob):
         for n2, p2 in _fields(payload, 0, len(payload)):
             if n2 == 1 and isinstance(p2, bytes):
                 name = p2.decode()
+                if wanted is not None and name.upper() not in wanted:
+                    break
             elif n2 == 2 and isinstance(p2, bytes):
                 kind, value = SUFFIX, None
                 for n3, p3 in _fields(p2, 0, len(p2)):
@@ -137,7 +176,7 @@ def read_catalogue(blob):
                         value = p3.decode()
                 if value:
                     entries.append((kind, value))
-        if name:
+        if name and not (wanted is not None and name.upper() not in wanted):
             sections[name.upper()] = entries
     return sections
 
@@ -211,18 +250,116 @@ def prune(rows):
     return kept
 
 
-def last_season():
-    """Yield, catalogue and profile fingerprints, and the stamp published."""
-    blank = (0, None, None, None)
-    if not os.path.exists(LOCKFILE):
-        return blank
+def blocked_index(blocked):
+    """Map every suffix of every blocked domain to the domains under it.
+
+    Built once so that asking "what would this suffix drag along" is a dict
+    lookup rather than a scan of seventy thousand strings per candidate.
+    """
+    index = {}
+    for kind, value in blocked:
+        if kind not in (SUFFIX, EXACT):
+            continue
+        parts = value.split(".")
+        for i in range(len(parts)):
+            index.setdefault(".".join(parts[i:]), []).append(value)
+    return index
+
+
+def captures(entry, index, blocked_values):
+    """Which blocked domains this one entry would route direct."""
+    kind, value = entry
+    if kind in (SUFFIX, EXACT):
+        hit = index.get(value, ())
+        return hit if kind == SUFFIX else [d for d in hit if d == value]
+    if kind == PLAIN:
+        return [d for d in blocked_values if value in d]
+    return []   # a regex is not analysed; it is admitted as written
+
+
+def covered_by(entry, suffixes, exact, keywords):
+    """Would this pool of entries still route `entry`'s domains direct?"""
+    kind, value = entry
+    if kind in (SUFFIX, EXACT):
+        parts = value.split(".")
+        if value in exact and kind == EXACT:
+            return True
+        if any(".".join(parts[i:]) in suffixes for i in range(len(parts))):
+            return True
+    return any(w in value for w in keywords)
+
+
+def admit(rows, prior, index, blocked_values):
+    """Keep the rows that do not open a hole, and say what was refused.
+
+    The rule is one line: a *new* entry may not capture a domain blocked in
+    Russia that the previous list did not already capture.  That is what
+    rejects the bare TLDs `ru`, `su` and `xn--p1ai` hiding inside a category
+    of Russian services -- one of them alone would route nineteen thousand
+    blocked domains around the tunnel -- and it rejects the free-hosting
+    suffixes `at.ua` and `ucoz.*` for the same reason, without either being
+    named anywhere.
+
+    Entries the previous list already had are grandfathered.  Otherwise a
+    single new blocked domain under, say, `spb.ru` would silently withdraw
+    every `spb.ru` site from the direct route.
+    """
+    known = set(prior)
+    already = set()
+    for entry in prior:
+        already.update(captures(entry, index, blocked_values))
+
+    kept, refused = [], []
+    for entry in rows:
+        if entry in known:
+            kept.append(entry)
+            continue
+        drags = [d for d in captures(entry, index, blocked_values)
+                 if d not in already]
+        if drags:
+            refused.append((entry, len(drags)))
+        else:
+            kept.append(entry)
+    return kept, refused, already
+
+
+def source_fingerprint():
+    """Hash of the source configuration.
+
+    The yield guards exist to catch an upstream serving nonsense.  Changing
+    which sources are read is not that, and the first run after such a change
+    legitimately moves the yield a long way, so the guards stand down for
+    exactly one run and come back with the new baseline.
+    """
+    config = {
+        "register": [REGISTER_URL, sorted(REGISTER_SECTIONS),
+                     CELLAR_SECTION, BLOCKED_SECTION],
+        "plain": sorted(PLAIN_SOURCES.items()),
+        "culled": sorted(CULLED.items()),
+    }
+    return hashlib.sha256(
+        json.dumps(config, sort_keys=True).encode()).hexdigest()
+
+
+def previous_whitelist():
+    """The direct list as published, read back from the catalogue on disk."""
+    if not os.path.exists(CATALOGUE):
+        return []
     try:
-        prev = json.load(open(LOCKFILE))
-        cat = prev["catalogue"]
-        return (int(cat["whitelist"]), cat.get("sha256"),
-                (prev.get("profile") or {}).get("sha256"), prev.get("harvested"))
+        return read_catalogue(open(CATALOGUE, "rb").read(),
+                              {"WHITELIST"}).get("WHITELIST", [])
     except Exception:
-        return blank
+        return []
+
+
+def last_season():
+    """The previous lockfile, or an empty one."""
+    if not os.path.exists(LOCKFILE):
+        return {}
+    try:
+        return json.load(open(LOCKFILE))
+    except Exception:
+        return {}
 
 
 def profile_fingerprint(profile):
@@ -261,7 +398,8 @@ def main():
         "bytes": len(register),
         "sha256": hashlib.sha256(register).hexdigest(),
     }
-    sections = read_catalogue(register)
+    wanted_sections = set(REGISTER_SECTIONS) | {CELLAR_SECTION, BLOCKED_SECTION}
+    sections = read_catalogue(register, wanted_sections)
 
     rows = []
     for name in REGISTER_SECTIONS:
@@ -274,6 +412,11 @@ def main():
     cellar = sections.get(CELLAR_SECTION, [])
     if not cellar:
         sys.exit("harvest aborted: register section %s is empty" % CELLAR_SECTION)
+
+    blocked = [(k, v.lower().lstrip(".")) for k, v in
+               sections.get(BLOCKED_SECTION, [])]
+    if not blocked:
+        sys.exit("harvest aborted: register section %s is empty" % BLOCKED_SECTION)
 
     for label, url in PLAIN_SOURCES.items():
         blob = fetch(url, label)
@@ -293,8 +436,21 @@ def main():
         provenance["homegrown"] = {"path": HOMEGROWN, "entries": len(got)}
         rows += got
 
+    prior = previous_whitelist()
+    index = blocked_index(blocked)
+    blocked_values = [v for k, v in blocked]
+    # Admit before pruning, never after: pruning collapses a child into its
+    # parent suffix, so pruning first and then refusing the parent would
+    # take the children with it.
+    rows, refused, already = admit(rows, prior, index, blocked_values)
     whitelist = prune(rows)
     private = prune([(k, v.lower().lstrip(".")) for k, v in cellar])
+
+    provenance["refused"] = {
+        "count": len(refused),
+        "worst": ["%s (%d blocked)" % (v, n) for (k, v), n
+                  in sorted(refused, key=lambda r: -r[1])[:10]],
+    }
 
     sections = {"WHITELIST": whitelist, "PRIVATE": private}
     for name, url in CULLED.items():
@@ -309,12 +465,59 @@ def main():
         }
         sections[name] = prune(got)
 
-    before, before_sha, before_profile, before_stamp = last_season()
-    if before and len(whitelist) < before * YIELD_FLOOR:
-        sys.exit(
-            "harvest aborted: yield %d is below %.0f%% of last season's %d"
-            % (len(whitelist), YIELD_FLOOR * 100, before)
-        )
+    prev = last_season()
+    prev_cat = prev.get("catalogue") or {}
+    before = int(prev_cat.get("whitelist") or 0)
+    before_sha = prev_cat.get("sha256")
+    before_profile = (prev.get("profile") or {}).get("sha256")
+    before_stamp = prev.get("harvested")
+    fingerprint_now = source_fingerprint()
+    same_sources = (prev.get("sources") or {}).get("sha256") == fingerprint_now
+
+    if before and same_sources:
+        if len(whitelist) < before * YIELD_FLOOR:
+            sys.exit(
+                "harvest aborted: yield %d is below %.0f%% of last season's %d"
+                % (len(whitelist), YIELD_FLOOR * 100, before)
+            )
+        if len(whitelist) > before * YIELD_CEILING:
+            sys.exit(
+                "harvest aborted: yield %d is above %.0fx last season's %d"
+                % (len(whitelist), YIELD_CEILING, before)
+            )
+    elif before:
+        print("source configuration changed; yield guards stand down for "
+              "this run and resume from the new baseline")
+
+    # Coverage, not count.  Pruning drops entries without dropping what they
+    # matched, so a longer list can still route less; only this comparison
+    # would notice.
+    suffixes = {v for k, v in whitelist if k == SUFFIX}
+    exact = {v for k, v in whitelist if k == EXACT}
+    keywords = [v for k, v in whitelist if k == PLAIN]
+    lost = [e for e in prior
+            if e not in set(whitelist)
+            and not covered_by(e, suffixes, exact, keywords)]
+    allowance = max(1, int(len(prior) * COVERAGE_SLACK))
+    if len(lost) > allowance:
+        sys.exit("harvest aborted: %d entries of the previous direct list are "
+                 "no longer covered (allowance %d): %s"
+                 % (len(lost), allowance,
+                    ", ".join(v for k, v in lost[:12])))
+
+    reach = set()
+    for entry in whitelist:
+        reach.update(captures(entry, index, blocked_values))
+    leaked = sorted(reach - already)
+    if len(leaked) > allowance:
+        sys.exit("harvest aborted: %d blocked domains would newly be routed "
+                 "direct: %s" % (len(leaked), ", ".join(leaked[:12])))
+
+    provenance["guards"] = {
+        "coverage_lost": [v for k, v in lost],
+        "blocked_direct": len(reach),
+        "blocked_direct_new": leaked,
+    }
 
     blob = write_catalogue(sections)
     # Round-trip what we just wrote; a catalogue that cannot be read back is
@@ -367,6 +570,7 @@ def main():
         bytes=len(blob), sha256=digest)
     provenance["profile"] = {"url": PROFILE_URL, "sha256": fingerprint,
                              "region_register": profile.get("Geoipurl")}
+    provenance["sources"] = {"sha256": fingerprint_now}
     provenance["harvested"] = published
     provenance["relinked"] = stamp
     json.dump(provenance, open(LOCKFILE, "w"), indent=2, sort_keys=True)
@@ -378,6 +582,14 @@ def main():
                                 len(blob)))
         if before:
             print("previous whitelist %d (%+d)" % (before, len(whitelist) - before))
+        print("refused %d entries that would have dragged blocked domains "
+              "direct%s" % (len(refused),
+                            "; worst: " + ", ".join(
+                                "%s (%d)" % (v, n) for (k, v), n in
+                                sorted(refused, key=lambda r: -r[1])[:5])
+                            if refused else ""))
+        print("blocked domains routed direct: %d (was %d), coverage lost: %d"
+              % (len(reach), len(already), len(lost)))
     else:
         print("catalogue unchanged (%s), upstream profile moved" % digest[:12])
         print("region register now %s" % provenance["profile"]["region_register"])
