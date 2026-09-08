@@ -28,6 +28,11 @@
     "sha256": "c369ee5b0c1991eeac520135cbdeb8bb34655cc37f53bc1e6bc1d947da97b50b",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist"
   },
+  "profile": {
+    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202609080801/release/geoip.dat",
+    "sha256": "1eb019eab2ac443e02ffb03f890489fae7496ba4c06f60ba6ce065fcf30c9638",
+    "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main/HAPP/WHITELIST.DEEPLINK"
+  },
   "register": {
     "bytes": 5404248,
     "sections": {
@@ -37,6 +42,7 @@
     "sha256": "95f94a984229a368eac96ab5f412242cb77da2dfc998d282a2e8ea56bd359809",
     "url": "https://github.com/runetfreedom/russia-blocked-geosite/releases/latest/download/geosite-ru-only.dat"
   },
+  "relinked": "202609081349",
   "torrent": {
     "entries": 434,
     "sha256": "c180313389e1101615ca6081740d303f81000cfcf79c44d63ebfa165134f77c9",
