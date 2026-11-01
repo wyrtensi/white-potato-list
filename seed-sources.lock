@@ -19,14 +19,9 @@
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/category-ads"
   },
   "guards": {
-    "blocked_direct": 12,
+    "blocked_direct": 11,
     "blocked_direct_new": [],
-    "coverage_lost": [
-      "gid.ru",
-      "korona.com",
-      "pskb.ru",
-      "raiffeisen-media.ru"
-    ]
+    "coverage_lost": []
   },
   "harvested": "202610312132",
   "homegrown": {
@@ -39,8 +34,8 @@
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist"
   },
   "profile": {
-    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202610310932/release/geoip.dat",
-    "sha256": "0c0cfbc649dd9ed63f82c70a9d8cba4504ee32c21a386ebdaabf694735a878e9",
+    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202611011023/release/geoip.dat",
+    "sha256": "f5b5f2c9880462e2bf2fc01e5ce55459fd4e933ca8eab58400421bcb8fd9fd4f",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main/HAPP/WHITELIST.DEEPLINK"
   },
   "refused": {
@@ -59,7 +54,7 @@
     ]
   },
   "register": {
-    "bytes": 85478222,
+    "bytes": 85521435,
     "sections": {
       "AUTORU": 5,
       "CATEGORY-AI-RU": 12,
@@ -86,10 +81,10 @@
       "TBANK-RU": 112,
       "YANDEX": 155
     },
-    "sha256": "d97b9ab97a7c4db3b40fc85296c956099c00f6994bd3beade44ef2b797864ed9",
+    "sha256": "51c452bbeb3b16ed1b7ee712171bbdb0db1bf946d90da1e7acb5118aa9a7a3f3",
     "url": "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
   },
-  "relinked": "202610312132",
+  "relinked": "202611011323",
   "sources": {
     "sha256": "024987b1b5bc22d1b1b461fdd07262296d89ed0fe4c53bae9e72af9618d167c7"
   },
