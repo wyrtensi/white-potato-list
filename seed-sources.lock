@@ -5,12 +5,12 @@
     "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst"
   },
   "catalogue": {
-    "bytes": 61860,
+    "bytes": 61876,
     "category-ads": 2,
     "private": 133,
-    "sha256": "443f4134b4027ce09d7e64aa43c74698fbfa87cd05b933140de67eca57c0b7a6",
+    "sha256": "f88c3bdd1957195a45c1c888926dcfabac059c7813bf497ed49442a2b5346042",
     "torrent": 418,
-    "whitelist": 2096,
+    "whitelist": 2097,
     "win-spy": 323
   },
   "category-ads": {
@@ -23,7 +23,7 @@
     "blocked_direct_new": [],
     "coverage_lost": []
   },
-  "harvested": "202610312132",
+  "harvested": "202611030057",
   "homegrown": {
     "entries": 0,
     "path": "varieties/homegrown"
@@ -54,7 +54,7 @@
     ]
   },
   "register": {
-    "bytes": 85531063,
+    "bytes": 85569213,
     "sections": {
       "AUTORU": 5,
       "CATEGORY-AI-RU": 12,
@@ -68,7 +68,7 @@
       "CATEGORY-MEDIA-RU": 148,
       "CATEGORY-MEDICINE-RU": 45,
       "CATEGORY-RETAIL-RU": 82,
-      "CATEGORY-RU": 1162,
+      "CATEGORY-RU": 1163,
       "CATEGORY-TECH-MEDIA-RU": 34,
       "CATEGORY-TRAVEL-RU": 25,
       "MAILRU": 300,
@@ -81,10 +81,10 @@
       "TBANK-RU": 112,
       "YANDEX": 155
     },
-    "sha256": "60c32a2ec79d7ace234782b03654ac37aa114b4736638b7670ac84369e0e3b63",
+    "sha256": "7ad62647c1890531695e11b3de36f8e08d950a3d3a94eac54326c01bd4684add",
     "url": "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
   },
-  "relinked": "202611021550",
+  "relinked": "202611030057",
   "sources": {
     "sha256": "024987b1b5bc22d1b1b461fdd07262296d89ed0fe4c53bae9e72af9618d167c7"
   },
