@@ -5,12 +5,12 @@
     "url": "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-raw.lst"
   },
   "catalogue": {
-    "bytes": 61929,
+    "bytes": 61944,
     "category-ads": 2,
     "private": 133,
-    "sha256": "aaa610bdc3d8245d8c8b8e5078b19d0a0f3ea6a8e12c090d73e8f37a2c1577f5",
+    "sha256": "41a142dc20600a9127194fa69feed165ee8ffeec510d1a6f252901c94c049026",
     "torrent": 418,
-    "whitelist": 2100,
+    "whitelist": 2101,
     "win-spy": 323
   },
   "category-ads": {
@@ -23,7 +23,7 @@
     "blocked_direct_new": [],
     "coverage_lost": []
   },
-  "harvested": "202611101943",
+  "harvested": "202611151850",
   "homegrown": {
     "entries": 0,
     "path": "varieties/homegrown"
@@ -34,8 +34,8 @@
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist"
   },
   "profile": {
-    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202611141017/release/geoip.dat",
-    "sha256": "a4b8d078582e4d924a1f542bdff9d5fb362b32f74d1aa7ba4b73a773d05908bd",
+    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202611151046/release/geoip.dat",
+    "sha256": "4d740cdd81b1f902dde372e000980a6da90cb76ac80040a3570d5ee2614da84d",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main/HAPP/WHITELIST.DEEPLINK"
   },
   "refused": {
@@ -54,7 +54,7 @@
     ]
   },
   "register": {
-    "bytes": 87715604,
+    "bytes": 87831111,
     "sections": {
       "AUTORU": 5,
       "CATEGORY-AI-RU": 12,
@@ -68,7 +68,7 @@
       "CATEGORY-MEDIA-RU": 148,
       "CATEGORY-MEDICINE-RU": 45,
       "CATEGORY-RETAIL-RU": 82,
-      "CATEGORY-RU": 1166,
+      "CATEGORY-RU": 1167,
       "CATEGORY-TECH-MEDIA-RU": 34,
       "CATEGORY-TRAVEL-RU": 25,
       "MAILRU": 300,
@@ -81,10 +81,10 @@
       "TBANK-RU": 112,
       "YANDEX": 155
     },
-    "sha256": "9204a2c203739736a59db223d7ba2d4f65abb64313f7dd14af3a0cbdb637f405",
+    "sha256": "9a9feb3a47e0bc43e5c1504d4506778f8149752d0b8c1c8d2da18e8cfbf85d8b",
     "url": "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
   },
-  "relinked": "202611141759",
+  "relinked": "202611151850",
   "sources": {
     "sha256": "024987b1b5bc22d1b1b461fdd07262296d89ed0fe4c53bae9e72af9618d167c7"
   },
