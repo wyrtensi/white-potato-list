@@ -34,8 +34,8 @@
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/master/data/whitelist"
   },
   "profile": {
-    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202611161106/release/geoip.dat",
-    "sha256": "5258f9e8499638e71927b91ff9d941e676bea145c8c423a880ca9a0c2d8a0175",
+    "region_register": "https://cdn.jsdelivr.net/gh/hydraponique/roscomvpn-geoip@202611171145/release/geoip.dat",
+    "sha256": "4087b33b2aa8a6eb25e6214b8cac47a37fd077fe60f369cd00aa32614dbad48c",
     "url": "https://raw.githubusercontent.com/hydraponique/roscomvpn-routing/main/HAPP/WHITELIST.DEEPLINK"
   },
   "refused": {
@@ -50,11 +50,11 @@
       "ucoz.com (7 blocked)",
       "ucoz.net (6 blocked)",
       "ru.net (5 blocked)",
-      "ucoz.org (2 blocked)"
+      "ucoz.ua (2 blocked)"
     ]
   },
   "register": {
-    "bytes": 87796485,
+    "bytes": 87805937,
     "sections": {
       "AUTORU": 5,
       "CATEGORY-AI-RU": 12,
@@ -81,10 +81,10 @@
       "TBANK-RU": 112,
       "YANDEX": 156
     },
-    "sha256": "e4f9d347ab3f5f25de4c94870df31ba5d6c10eb69f2f3acde2b58ddb87438f9a",
+    "sha256": "d04e0cf7438e08f8290e7dd7b833e138c41f884b860b584948dcc6f44c705f86",
     "url": "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
   },
-  "relinked": "202611162201",
+  "relinked": "202611172054",
   "sources": {
     "sha256": "024987b1b5bc22d1b1b461fdd07262296d89ed0fe4c53bae9e72af9618d167c7"
   },
